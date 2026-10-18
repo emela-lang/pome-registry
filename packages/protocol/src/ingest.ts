@@ -65,7 +65,8 @@ export const limits = {
 } as const;
 
 // 最初は host を絞る。自宅の LAN を叩かせない（SSRF）ため、DNS で引いた先の検査とは別に置く。
-export const defaultAllowedHosts: readonly string[] = ["github.com", "codeberg.org", "gitlab.com"];
+// 今は github.com だけ（リポジトリの境界を source path から決められる host、4.7）。
+export const defaultAllowedHosts: readonly string[] = ["github.com"];
 
 // --- 署名 ---
 //

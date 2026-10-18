@@ -1,7 +1,11 @@
 // source path（4.7）: `host/path`。`https://` と末尾の `.git` を除いた形。
-// v2 以上の major の Pome は末尾に `/vN` を付け、`/vN` を外したものがリポジトリになる。
+// v2 以上の major の Pome は末尾に `/vN` を付け、`/vN` を外したものが Pome の場所になる。
+// github.com では `github.com/<owner>/<repo>` までがリポジトリで、その後ろがリポジトリの中のディレクトリ。
+// ほかの host では、場所の全体がリポジトリ。
 
-import type { Version } from "./version.ts";
+import { parseVersion, type Version } from "./version.ts";
+
+const GITHUB = "github.com";
 
 export type SourcePath = string & { readonly __brand: "SourcePath" };
 
@@ -45,6 +49,10 @@ export function parseSourcePath(input: string): SourcePath {
     }
     if (rest.length < 2) throw new InvalidSourcePath(input, "repository path is missing before the major suffix");
   }
+  const location = rest.length - (major === undefined ? 0 : 1);
+  if (host === GITHUB && location < 2) {
+    throw new InvalidSourcePath(input, "a github.com path needs the owner and the repository");
+  }
   return input as SourcePath;
 }
 
@@ -54,9 +62,44 @@ export function majorOf(path: SourcePath): number | undefined {
   return m === null ? undefined : Number(m[1]);
 }
 
-// git で取るリポジトリ。`/vN` を外した形。
-export function repositoryOf(path: SourcePath): string {
+// Pome の場所。`/vN` を外した形。
+export function locationOf(path: SourcePath): string {
   return path.replace(MAJOR_SUFFIX, "");
+}
+
+// git で取るリポジトリ。github.com では `github.com/<owner>/<repo>`、ほかの host では場所の全体。
+export function repositoryOf(path: SourcePath): string {
+  const location = locationOf(path);
+  if (sourcePathHost(path) !== GITHUB) return location;
+  return location.split("/").slice(0, 3).join("/");
+}
+
+// リポジトリの中のディレクトリ（`platform-cloudflare`）。リポジトリの根の Pome なら undefined。
+export function directoryOf(path: SourcePath): string | undefined {
+  const rest = locationOf(path).slice(repositoryOf(path).length);
+  return rest === "" ? undefined : rest.slice(1);
+}
+
+// 版の git の tag。ディレクトリの Pome ならディレクトリを前に付ける（`platform-cloudflare/v0.1.0`）。
+export function tagOf(path: SourcePath, version: Version): string {
+  const dir = directoryOf(path);
+  return dir === undefined ? version.raw : `${dir}/${version.raw}`;
+}
+
+// リポジトリの tag が、この Pome のどの版か。この Pome の tag でなければ undefined。
+export function versionOfTag(path: SourcePath, tag: string): Version | undefined {
+  const dir = directoryOf(path);
+  let raw = tag;
+  if (dir !== undefined) {
+    if (!tag.startsWith(`${dir}/`)) return undefined;
+    raw = tag.slice(dir.length + 1);
+  }
+  try {
+    const version = parseVersion(raw);
+    return isVersionOf(path, version) ? version : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 // その tag がこの Pome の版か。`/vN` があれば major が N、なければ v0 か v1。

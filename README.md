@@ -9,6 +9,8 @@ Emela の Pome（4.7）の proxy と checksum DB．ID と版の真実は git に
 | `packages/proxy` | `pomes.emela.ab2m.link`．R2 から配り，ない版は ingester に取り込ませる．`@v/list` は git の smart HTTP で直接引く |
 | `packages/ingester` | 手元のサーバーで動く Node のサービス（Docker）．git で tag を浅く取り，検査して tar.gz とハッシュを返す |
 
+扱う host は今は github.com だけ．`github.com/<owner>/<repo>` までがリポジトリで，その後ろはリポジトリの中のディレクトリ（4.7）．ディレクトリの Pome の tag はディレクトリを前に付け（`platform-cloudflare/v0.1.0`），中身はそのディレクトリの tree．
+
 v2 以上の major は source path の末尾に `/vN` を付けた別の Pome（4.7）．`/vN` を外したものがリポジトリで，major と `/vN` が合わない tag はその Pome の版とみなさない（`@v/list` に出さず，取り込まない）．
 
 木と署名は C2SP の tlog-tiles，tlog-checkpoint，signed-note に従う．`testdata/tlog-vectors.json` は別の実装で作った値で，Rust のクライアントも同じものを通す．
@@ -72,6 +74,6 @@ pnpm run deploy                           # `pnpm deploy` は pnpm 自身のコ�
 - アーカイブは `.tar.gz`．ハッシュは木から取るので，後で形式を替えても lock は壊れない
 - ingester の応答（multipart）は全部をメモリに載せる．大きさの上限（32 MiB）で抑えている
 - ingester は tag の commit をまるごと取ってから大きさを検査する．取得は 30 秒で打ち切り，`/tmp` は 512 MiB に絞っているが，大きなリポジトリの帯域は使われる
-- DNS の検査（私的なアドレスを拒む）と git の名前解決は別なので，その間に DNS が変わる余地は残る．host を github.com，codeberg.org，gitlab.com に絞っているので足りる
+- DNS の検査（私的なアドレスを拒む）と git の名前解決は別なので，その間に DNS が変わる余地は残る．host を github.com に絞っているので足りる
 - 同じ版への同時の要求は，それぞれが ingester を呼ぶ（記録は1つにまとまる）
 - `testdata/hash-vectors.json` は Rust のクライアントでも同じものを通す

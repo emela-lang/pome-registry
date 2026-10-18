@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   escapeSourcePath,
   InvalidSourcePath,
+  directoryOf,
   isVersionOf,
   majorOf,
   parseSourcePath,
   parseVersion,
   repositoryOf,
+  tagOf,
+  versionOfTag,
   unescapeSourcePath,
 } from "../src/index.ts";
 
@@ -64,5 +67,26 @@ describe("source path", () => {
       true,
       false,
     ]);
+  });
+
+  it("github.com ではリポジトリの中のディレクトリの Pome を読む", () => {
+    const p = parseSourcePath("github.com/emela-lang/x/platform-cloudflare");
+    expect([repositoryOf(p), directoryOf(p)]).toEqual(["github.com/emela-lang/x", "platform-cloudflare"]);
+    expect(tagOf(p, parseVersion("v0.1.0"))).toBe("platform-cloudflare/v0.1.0");
+    expect(versionOfTag(p, "platform-cloudflare/v0.1.0")?.raw).toBe("v0.1.0");
+    expect(versionOfTag(p, "v0.1.0")).toBeUndefined();
+    expect(versionOfTag(p, "other/v0.1.0")).toBeUndefined();
+
+    const v2 = parseSourcePath("github.com/emela-lang/x/a/b/v2");
+    expect([repositoryOf(v2), directoryOf(v2)]).toEqual(["github.com/emela-lang/x", "a/b"]);
+    expect(versionOfTag(v2, "a/b/v2.1.0")?.raw).toBe("v2.1.0");
+    expect(versionOfTag(v2, "a/b/v1.0.0")).toBeUndefined();
+
+    const root = parseSourcePath("github.com/emela-lang/x");
+    expect(directoryOf(root)).toBeUndefined();
+    expect(versionOfTag(root, "platform-cloudflare/v0.1.0")).toBeUndefined();
+    expect(repositoryOf(parseSourcePath("git.example.com/a/b/c"))).toBe("git.example.com/a/b/c");
+    expect(() => parseSourcePath("github.com/acme")).toThrow(InvalidSourcePath);
+    expect(() => parseSourcePath("github.com/acme/v2")).toThrow(InvalidSourcePath);
   });
 });

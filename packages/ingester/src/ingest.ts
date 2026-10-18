@@ -23,7 +23,9 @@ import {
   parseSourcePath,
   isVersionOf,
   parseVersion,
+  directoryOf,
   repositoryOf,
+  tagOf,
   type SourcePath,
   sourcePathHost,
   type TreeFile,
@@ -128,7 +130,7 @@ async function fetchVersion(
   const dir = await mkdtemp(join(tmpdir(), "pome-ingest-"));
   try {
     const run = (args: readonly string[], stdin?: string) => git(dir, args, options.git, stdin);
-    const tag = `refs/tags/${version.raw}`;
+    const tag = `refs/tags/${tagOf(path, version)}`;
     await run(["init", "--quiet", "--bare", "."]);
     try {
       await run(["fetch", "--quiet", "--depth=1", "--no-tags", options.repositoryUrl(repositoryOf(path)), `+${tag}:${tag}`]);
@@ -175,11 +177,16 @@ async function readTree(
   commit: string,
   path: SourcePath,
 ): Promise<TreeFile[]> {
+  // ディレクトリの Pome は、そのディレクトリの tree（パスはディレクトリからの相対）。
+  const dir = directoryOf(path);
   let entries;
   try {
-    entries = parseLsTree(await run(["ls-tree", "-r", "-l", "-z", "--full-tree", commit]));
+    entries = parseLsTree(await run(["ls-tree", "-r", "-l", "-z", dir === undefined ? commit : `${commit}:${dir}`]));
   } catch (e) {
     if (e instanceof TypeError) throw new Rejection("bad_path", `${path}: a path is not UTF-8`);
+    if (e instanceof GitError && dir !== undefined) {
+      throw new Rejection("tag_not_found", `${path}: no directory \`${dir}\` at the tag`);
+    }
     throw e;
   }
   let total = 0;

@@ -66,6 +66,15 @@ beforeAll(() => {
       sh(dir, "add", "-A");
     },
   });
+  // リポジトリの根と、ディレクトリ pkg に別の Pome がある。pkg の tag は `pkg/` を前に付ける。
+  repo("github.com/acme/mono", {
+    files: {
+      "Pome.toml": manifest("github.com/acme/mono", "1.0.0"),
+      "pkg/Pome.toml": manifest("github.com/acme/mono/pkg", "0.2.0"),
+      "pkg/src/lib.emel": "pub fn g() -> Int { 2 }\n",
+    },
+    tags: ["v1.0.0", "pkg/v0.2.0"],
+  });
   repo("github.com/acme/nomanifest", { files: { "src/lib.emel": "x\n" }, tags: ["v1.0.0"] });
   repo("github.com/acme/wrongname", { files: { "Pome.toml": manifest("github.com/acme/other", "1.0.0") }, tags: ["v1.0.0"] });
   repo("github.com/acme/wrongversion", {
@@ -111,7 +120,17 @@ describe("ingest", () => {
     expect(v2.meta.manifest).toContain('name = "github.com/acme/major/v2"');
   });
 
+  it("reads a Pome in a directory of its repository", async () => {
+    const result = await run("github.com/acme/mono/pkg", "v0.2.0");
+    if (!result.ok) throw new Error(result.body.message);
+    const files = readTar(await gunzip(result.archive, 1 << 20));
+    expect(files.map((f) => f.path).sort()).toEqual(["Pome.toml", "src/lib.emel"]);
+    expect(result.meta.manifest).toContain('name = "github.com/acme/mono/pkg"');
+  });
+
   it.each([
+    ["github.com/acme/mono/pkg", "v1.0.0", "tag_not_found", 404],
+    ["github.com/acme/mono/none", "v1.0.0", "tag_not_found", 404],
     ["github.com/acme/major", "v2.0.0", "invalid_request", 400],
     ["github.com/acme/major/v2", "v1.0.0", "invalid_request", 400],
     ["github.com/acme/good", "v1.9.9", "tag_not_found", 404],

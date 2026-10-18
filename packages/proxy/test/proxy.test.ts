@@ -127,6 +127,12 @@ describe("list and latest", () => {
     expect(await (await get("github.com/acme/major/v2/@v/list")).text()).toBe("v2.0.0\nv2.1.0-rc.1\n");
   });
 
+  it("lists only the tags of the directory the path names", async () => {
+    mockTags({ "github.com/acme/mono": ["v1.0.0", "pkg/v0.1.0", "pkg/v0.2.0", "other/v3.0.0"] });
+    expect(await (await get("github.com/acme/mono/@v/list")).text()).toBe("v1.0.0\n");
+    expect(await (await get("github.com/acme/mono/pkg/@v/list")).text()).toBe("v0.1.0\nv0.2.0\n");
+  });
+
   it("answers 404 for a version of another major", async () => {
     const res = await get("github.com/acme/good/@v/v2.0.0.info");
     expect(res.status).toBe(404);

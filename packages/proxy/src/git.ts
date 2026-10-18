@@ -1,7 +1,8 @@
-// `@v/list` の元。リポジトリ（source path から `/vN` を外したもの）の tag を、git の smart HTTP の ref の一覧から読む。
+// `@v/list` の元。リポジトリの tag を、git の smart HTTP の ref の一覧から読む。
+// ディレクトリの Pome は、ディレクトリを前に付けた tag だけがその版。
 // clone はしない。ref の一覧は1回の GET で返り、ingester を通さずに Worker から引ける。
 
-import { compareVersions, isVersion, isVersionOf, parseVersion, repositoryOf, type SourcePath } from "@pome-registry/protocol";
+import { compareVersions, repositoryOf, type SourcePath, versionOfTag } from "@pome-registry/protocol";
 
 export class RepositoryNotFound extends Error {}
 
@@ -15,10 +16,8 @@ export async function listVersions(path: SourcePath, fetcher: typeof fetch = fet
   if (!res.ok) throw new Error(`git ls-remote of ${path} failed: ${res.status}`);
   const tags = parseTags(new Uint8Array(await res.arrayBuffer()));
   return tags
-    .filter(isVersion)
-    .map(parseVersion)
-    // 同じリポジトリでも、major と `/vN` が合わない tag はこの Pome の版ではない。
-    .filter((v) => isVersionOf(path, v))
+    // 同じリポジトリでも、ディレクトリと major（`/vN`）が合わない tag はこの Pome の版ではない。
+    .flatMap((t) => versionOfTag(path, t) ?? [])
     .sort(compareVersions)
     .map((v) => v.raw);
 }
