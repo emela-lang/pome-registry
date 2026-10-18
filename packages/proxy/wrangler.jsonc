@@ -1,0 +1,33 @@
+// proxy: Pome の版を R2 から配る。R2 にない版は ingester に取り込ませ、
+// 中身を確かめて sumdb の Log に記録してから R2 に置く。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pome-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "routes": [{ "pattern": "pomes.emela.ab2m.link", "custom_domain": true }],
+  "r2_buckets": [{ "binding": "PROXY", "bucket_name": "pome-proxy" }],
+  "durable_objects": {
+    "bindings": [{ "name": "LOG", "class_name": "Log", "script_name": "pome-sumdb" }]
+  },
+  // ingester は公開ホスト名を持たず、Tunnel の先にある。service_id は `wrangler vpc service create` の結果。
+  "vpc_services": [{ "binding": "INGESTER", "service_id": "REPLACE_WITH_SERVICE_ID", "remote": true }],
+  // 秘密: INGEST_SECRET（ingester と共有する HMAC の鍵）
+  "observability": { "enabled": true },
+  "env": {
+    // テスト用。vpc_services は remote にしか繋がらないので外し、INGESTER はテストが差し込む。
+    // sumdb の Log は別の Worker だが、テストでは test/worker.ts で同じ Worker に同居させる。
+    "test": {
+      "main": "test/worker.ts",
+      "routes": [],
+      "r2_buckets": [
+        { "binding": "PROXY", "bucket_name": "pome-proxy" },
+        { "binding": "SUMDB", "bucket_name": "pome-sumdb" }
+      ],
+      "durable_objects": {
+        "bindings": [{ "name": "LOG", "class_name": "Log" }]
+      },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Log"] }]
+    }
+  }
+}
