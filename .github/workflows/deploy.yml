@@ -1,0 +1,48 @@
+# Workers（sumdb と proxy）を deploy する。ingester は Komodo の Stack で別に deploy する。
+#
+# 要る秘密（リポジトリの Settings → Secrets and variables → Actions）:
+#   CLOUDFLARE_API_TOKEN   Workers を deploy できる API トークン
+#   CLOUDFLARE_ACCOUNT_ID  アカウントの ID
+# Workers の秘密（SUMDB_SIGNER_KEY、INGEST_SECRET）は wrangler secret put で入れたものが残るので、ここでは扱わない。
+
+name: Deploy Workers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages/protocol/**
+      - packages/sumdb/**
+      - packages/proxy/**
+      - pnpm-lock.yaml
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+# deploy を重ねない。走っているものは止めずに待たせる。
+concurrency:
+  group: deploy-workers
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm --filter @pome-registry/protocol --filter @pome-registry/sumdb --filter @pome-registry/proxy test
+      # proxy は sumdb の Durable Object を script_name で引くので、sumdb を先に置く。
+      - name: Deploy sumdb
+        run: pnpm --filter @pome-registry/sumdb run deploy
+      - name: Deploy proxy
+        run: pnpm --filter @pome-registry/proxy run deploy

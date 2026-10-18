@@ -31,6 +31,10 @@ sumdb の lookup にない版は，sumdb の Worker が proxy に `.info` を求
 
 ## deploy
 
+Workers（sumdb と proxy）は GitHub Actions（`.github/workflows/deploy.yml`）が main への push で deploy する．リポジトリの Actions の秘密に `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を入れる．Workers の秘密（`SUMDB_SIGNER_KEY`，`INGEST_SECRET`）は deploy では変わらないので，最初に一度 `wrangler secret put` で入れる．ingester は Komodo の Stack で deploy する．
+
+最初の一度だけ手で行う作業は次のとおり．
+
 sumdb を先に置く．proxy は sumdb の Durable Object を `script_name` で引く．
 
 ```sh
