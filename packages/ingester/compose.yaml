@@ -2,6 +2,9 @@
 # Workers VPC Service の宛先は http://ingester:8080 にする。
 #
 #   INGEST_SECRET=... TUNNEL_TOKEN=... docker compose up -d --build
+#
+# Komodo の Stack で動かすときは、run directory を packages/ingester にし、
+# INGEST_SECRET と TUNNEL_TOKEN を Stack の Environment に Secret から入れる。
 
 services:
   ingester:
@@ -20,7 +23,7 @@ services:
     restart: unless-stopped
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2026.9.3
     command: tunnel --no-autoupdate run
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN}
