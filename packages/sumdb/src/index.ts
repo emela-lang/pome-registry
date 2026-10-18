@@ -5,6 +5,7 @@
 // （proxy は sumdb の Durable Object を束縛しているので、こちらからも束縛すると deploy の順が決まらない）。
 
 import {
+  isVersionOf,
   parseVersion,
   proxyPaths,
   type SourcePath,
@@ -65,6 +66,7 @@ export function objectKey(path: string): ObjectKey | undefined {
     if (at < 0) return undefined;
     try {
       const lookup = { path: unescapeSourcePath(rest.slice(0, at)), version: parseVersion(rest.slice(at + 1)) };
+      if (!isVersionOf(lookup.path, lookup.version)) return undefined;
       const key = sumdbPaths.lookup(lookup.path, lookup.version);
       return key === path ? { key, lookup } : undefined;
     } catch {

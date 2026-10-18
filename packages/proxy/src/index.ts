@@ -8,6 +8,7 @@
 
 import {
   defaultAllowedHosts,
+  isVersionOf,
   latestCandidates,
   parseVersion,
   proxyPaths,
@@ -72,6 +73,9 @@ async function serve(env: Env, route: Route): Promise<Response> {
       return text(404, `${route.path}: none of the latest ${LATEST_ATTEMPTS} versions can be served`);
     }
     case "file":
+      if (!isVersionOf(route.path, route.version)) {
+        return text(404, `${route.path}: ${route.version.raw} is not a version of this Pome (the major must match the /vN suffix)`);
+      }
       return file(env, route.path, route.version, route.file);
   }
 }

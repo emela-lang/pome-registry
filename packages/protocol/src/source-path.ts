@@ -1,10 +1,14 @@
 // source path（4.7）: `host/path`。`https://` と末尾の `.git` を除いた形。
+// v2 以上の major の Pome は末尾に `/vN` を付け、`/vN` を外したものがリポジトリになる。
+
+import type { Version } from "./version.ts";
 
 export type SourcePath = string & { readonly __brand: "SourcePath" };
 
 const MAX_LENGTH = 255;
 const HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 const ELEMENT = /^[A-Za-z0-9]([A-Za-z0-9._-]*[A-Za-z0-9_-])?$/;
+const MAJOR_SUFFIX = /\/v([0-9]+)$/;
 
 export class InvalidSourcePath extends Error {
   constructor(
@@ -34,7 +38,31 @@ export function parseSourcePath(input: string): SourcePath {
   if (input.endsWith(".git")) {
     throw new InvalidSourcePath(input, "must not end with `.git`");
   }
+  const major = MAJOR_SUFFIX.exec(input)?.[1];
+  if (major !== undefined) {
+    if (!/^[1-9][0-9]*$/.test(major) || Number(major) < 2) {
+      throw new InvalidSourcePath(input, "a major suffix must be `/v2` or above, without leading zeros");
+    }
+    if (rest.length < 2) throw new InvalidSourcePath(input, "repository path is missing before the major suffix");
+  }
   return input as SourcePath;
+}
+
+// 末尾の `/vN` の N。なければ undefined（v0 か v1 の Pome）。
+export function majorOf(path: SourcePath): number | undefined {
+  const m = MAJOR_SUFFIX.exec(path);
+  return m === null ? undefined : Number(m[1]);
+}
+
+// git で取るリポジトリ。`/vN` を外した形。
+export function repositoryOf(path: SourcePath): string {
+  return path.replace(MAJOR_SUFFIX, "");
+}
+
+// その tag がこの Pome の版か。`/vN` があれば major が N、なければ v0 か v1。
+export function isVersionOf(path: SourcePath, version: Version): boolean {
+  const major = majorOf(path);
+  return major === undefined ? version.major <= 1 : version.major === major;
 }
 
 export function sourcePathHost(path: SourcePath): string {

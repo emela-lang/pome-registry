@@ -44,7 +44,7 @@ const manifest = (name: string, version: string) =>
 
 const options: IngestOptions = {
   allowedHosts: ["github.com"],
-  repositoryUrl: (p) => `file://${join(root, p)}`,
+  repositoryUrl: (repository) => `file://${join(root, repository)}`,
   checkHost: async () => true,
   git: { timeoutMs: 10_000, allowProtocols: ["file"] },
 };
@@ -54,6 +54,17 @@ beforeAll(() => {
     files: { "Pome.toml": manifest("github.com/acme/good", "1.0.0"), "src/lib.emel": "pub fn f() -> Int { 1 }\n" },
     tags: ["v1.0.0"],
     annotated: true,
+  });
+  repo("github.com/acme/major", {
+    files: { "Pome.toml": manifest("github.com/acme/major", "1.0.0") },
+    tags: ["v2.0.0"],
+    setup: (dir) => {
+      // 同じリポジトリの v2 は、name に /v2 を付けた別の Pome。
+      sh(dir, "commit", "--quiet", "-m", "v1");
+      sh(dir, "tag", "v1.0.0");
+      writeFileSync(join(dir, "Pome.toml"), manifest("github.com/acme/major/v2", "2.0.0"));
+      sh(dir, "add", "-A");
+    },
   });
   repo("github.com/acme/nomanifest", { files: { "src/lib.emel": "x\n" }, tags: ["v1.0.0"] });
   repo("github.com/acme/wrongname", { files: { "Pome.toml": manifest("github.com/acme/other", "1.0.0") }, tags: ["v1.0.0"] });
@@ -92,8 +103,18 @@ describe("ingest", () => {
     expect(result.meta.files).toBe(2);
   });
 
+  it("reads v1 and v2 of one repository as two Pomes", async () => {
+    const v1 = await run("github.com/acme/major", "v1.0.0");
+    const v2 = await run("github.com/acme/major/v2", "v2.0.0");
+    if (!v1.ok || !v2.ok) throw new Error("expected both to be ingested");
+    expect(v1.meta.manifest).toContain('name = "github.com/acme/major"');
+    expect(v2.meta.manifest).toContain('name = "github.com/acme/major/v2"');
+  });
+
   it.each([
-    ["github.com/acme/good", "v2.0.0", "tag_not_found", 404],
+    ["github.com/acme/major", "v2.0.0", "invalid_request", 400],
+    ["github.com/acme/major/v2", "v1.0.0", "invalid_request", 400],
+    ["github.com/acme/good", "v1.9.9", "tag_not_found", 404],
     ["github.com/acme/nomanifest", "v1.0.0", "manifest_missing", 422],
     ["github.com/acme/wrongname", "v1.0.0", "manifest_name_mismatch", 422],
     ["github.com/acme/wrongversion", "v1.0.1", "manifest_version_mismatch", 422],
@@ -103,6 +124,7 @@ describe("ingest", () => {
     ["github.com/acme/missing", "v1.0.0", "tag_not_found", 404],
     ["gitlab.com/acme/good", "v1.0.0", "host_not_allowed", 403],
     ["github.com/acme/good", "1.0.0", "invalid_request", 400],
+    ["github.com/acme/good/v1", "v1.0.0", "invalid_request", 400],
   ])("refuses %s@%s with %s", async (path, version, error, status) => {
     const result = await run(path, version);
     expect(result.ok).toBe(false);

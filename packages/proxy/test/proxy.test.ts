@@ -121,6 +121,18 @@ describe("list and latest", () => {
     expect((await get("github.com/acme/symlink/@latest")).status).toBe(404);
   });
 
+  it("lists only the tags of the major that the path names", async () => {
+    mockTags({ "github.com/acme/major": ["v1.0.0", "v1.1.0", "v2.0.0", "v2.1.0-rc.1", "v3.0.0"] });
+    expect(await (await get("github.com/acme/major/@v/list")).text()).toBe("v1.0.0\nv1.1.0\n");
+    expect(await (await get("github.com/acme/major/v2/@v/list")).text()).toBe("v2.0.0\nv2.1.0-rc.1\n");
+  });
+
+  it("answers 404 for a version of another major", async () => {
+    const res = await get("github.com/acme/good/@v/v2.0.0.info");
+    expect(res.status).toBe(404);
+    expect(await res.text()).toContain("not a version of this Pome");
+  });
+
   it("answers 404 for a missing repository", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("", { status: 401 }));
     expect((await get("github.com/acme/nothing/@v/list")).status).toBe(404);

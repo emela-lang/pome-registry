@@ -3,7 +3,7 @@
 //
 // 検査（4.7 の取り込みの条件）:
 //   - host が許したものに入っていて、DNS で引いた先が私的なアドレスでない
-//   - tag `v<version>` がある
+//   - tag `v<version>` がある。major が source path の `/vN` と合う
 //   - シンボリックリンクと submodule を含まず、パスが UTF-8 で正しい形
 //   - ファイルの数と大きさが上限の内
 //   - 根に Pome.toml があり、[pome].name が source path、[pome].version が tag から `v` を外したもの
@@ -21,7 +21,9 @@ import {
   MANIFEST_FILE,
   manifestHash,
   parseSourcePath,
+  isVersionOf,
   parseVersion,
+  repositoryOf,
   type SourcePath,
   sourcePathHost,
   type TreeFile,
@@ -34,8 +36,8 @@ import { git, GitError, type GitOptions, parseCatFileBatch, parseLsTree } from "
 
 export type IngestOptions = {
   readonly allowedHosts: readonly string[];
-  // source path からリポジトリの URL を作る。テストで file:// に差し替える。
-  readonly repositoryUrl: (path: SourcePath) => string;
+  // リポジトリ（source path から `/vN` を外したもの）の URL を作る。テストで file:// に差し替える。
+  readonly repositoryUrl: (repository: string) => string;
   // host が私的なアドレスに向いていないか。テストでは検査しない。
   readonly checkHost: (host: string) => Promise<boolean>;
   readonly git: GitOptions;
@@ -99,8 +101,13 @@ function parseInput(input: unknown): { path: SourcePath; version: Version } {
     throw new Rejection("invalid_request", "`path` and `version` must be strings");
   }
   try {
-    return { path: parseSourcePath(path), version: parseVersion(version) };
+    const parsed = { path: parseSourcePath(path), version: parseVersion(version) };
+    if (!isVersionOf(parsed.path, parsed.version)) {
+      throw new Rejection("invalid_request", `${version} is not a version of ${path} (the major must match the /vN suffix)`);
+    }
+    return parsed;
   } catch (e) {
+    if (e instanceof Rejection) throw e;
     throw new Rejection("invalid_request", (e as Error).message);
   }
 }
@@ -124,7 +131,7 @@ async function fetchVersion(
     const tag = `refs/tags/${version.raw}`;
     await run(["init", "--quiet", "--bare", "."]);
     try {
-      await run(["fetch", "--quiet", "--depth=1", "--no-tags", options.repositoryUrl(path), `+${tag}:${tag}`]);
+      await run(["fetch", "--quiet", "--depth=1", "--no-tags", options.repositoryUrl(repositoryOf(path)), `+${tag}:${tag}`]);
     } catch (e) {
       // 無いリポジトリと非公開のリポジトリは、https では認証を求められる形で失敗する。
       if (e instanceof GitError && NOT_FOUND.test(e.stderr)) {

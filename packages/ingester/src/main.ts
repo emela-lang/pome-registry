@@ -21,7 +21,7 @@ const server = createIngester({
   secret,
   maxConcurrency: Number(process.env.MAX_CONCURRENCY ?? 4),
   allowedHosts,
-  repositoryUrl: (path) => `https://${path}.git`,
+  repositoryUrl: (repository) => `https://${repository}.git`,
   checkHost: resolvesToPublic,
   git: { timeoutMs: limits.fetchTimeoutMs },
 });

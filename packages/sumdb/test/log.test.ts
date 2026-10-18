@@ -106,7 +106,7 @@ describe("objectKey", () => {
   });
 
   it("rejects anything else", () => {
-    for (const p of ["", "tile/0/1", "tile/0/000.p/256", "tile/0/000.p/0", "lookup/github.com/Acme/x@v1.2.3", "lookup/github.com/acme/x@1.2.3", "lookup/x", "other"]) {
+    for (const p of ["", "tile/0/1", "tile/0/000.p/256", "tile/0/000.p/0", "lookup/github.com/Acme/x@v1.2.3", "lookup/github.com/acme/x@1.2.3", "lookup/github.com/acme/x@v2.0.0", "lookup/github.com/acme/x/v2@v1.0.0", "lookup/x", "other"]) {
       expect(objectKey(p), p).toBeUndefined();
     }
   });
