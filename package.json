@@ -1,0 +1,13 @@
+{
+  "name": "pome-registry",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "pnpm -r run check",
+    "test": "pnpm -r run test"
+  }
+}
