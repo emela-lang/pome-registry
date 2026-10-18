@@ -4,6 +4,8 @@
 //   github.com/acme/symlink  symlink のエラー（410 になる）
 //   github.com/acme/liar     tree のハッシュを偽る
 //   github.com/acme/moved    呼ばれるたびに中身が変わる（tag の付け替え）
+//   github.com/acme/skip     v1.0.0 だけが正しく、ほかの版は symlink のエラー
+//   github.com/acme/flaky    v1.1.0 は取得の一時的な失敗（502）
 
 import {
   gzip,
@@ -30,7 +32,10 @@ export async function fakeIngester(request: Request): Promise<Response> {
   const { path, version } = JSON.parse(new TextDecoder().decode(body)) as { path: string; version: string };
   calls.push(`${path}@${version}`);
 
-  if (path === "github.com/acme/symlink") {
+  if (path === "github.com/acme/flaky" && version === "v1.1.0") {
+    return Response.json({ error: "fetch_failed", message: "timed out" }, { status: 502 });
+  }
+  if (path === "github.com/acme/symlink" || (path === "github.com/acme/skip" && version !== "v1.0.0")) {
     return Response.json({ error: "symlink", message: "src/link is a symbolic link" }, { status: 422 });
   }
   if (version === "v9.9.9") {

@@ -64,12 +64,9 @@ function comparePrerelease(a: readonly string[], b: readonly string[]): number {
   return a.length === b.length ? 0 : a.length < b.length ? -1 : 1;
 }
 
-// `@v/list` から `@latest` を選ぶ。prerelease でない最大を優先する。
-export function latestVersion(versions: readonly Version[]): Version | undefined {
-  const releases = versions.filter((v) => v.prerelease.length === 0);
-  const pool = releases.length > 0 ? releases : versions;
-  return pool.reduce<Version | undefined>(
-    (best, v) => (best === undefined || compareVersions(v, best) > 0 ? v : best),
-    undefined,
-  );
+// `@latest` を試す順。prerelease でない版を大きい順に並べ、その後に prerelease を大きい順に並べる。
+// proxy は前から試し、取り込めない版（410）を飛ばす（4.7）。
+export function latestCandidates(versions: readonly Version[]): Version[] {
+  const desc = [...versions].sort((a, b) => compareVersions(b, a));
+  return [...desc.filter((v) => v.prerelease.length === 0), ...desc.filter((v) => v.prerelease.length > 0)];
 }

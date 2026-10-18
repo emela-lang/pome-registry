@@ -8,7 +8,7 @@
 
 import {
   defaultAllowedHosts,
-  latestVersion,
+  latestCandidates,
   parseVersion,
   proxyPaths,
   type SourcePath,
@@ -20,6 +20,8 @@ import { listVersions, RepositoryNotFound } from "./git.ts";
 import { ingest } from "./ingest.ts";
 
 const LIST_TTL_SECONDS = 60;
+// `@latest` で試す版の数。取り込めない版が続いても、ingester をこれより多くは呼ばない。
+const LATEST_ATTEMPTS = 5;
 
 export type Route =
   | { readonly kind: "list"; readonly path: SourcePath }
@@ -54,13 +56,20 @@ async function serve(env: Env, route: Route): Promise<Response> {
     case "latest": {
       const versions = await versionsOf(route.path);
       if (versions === undefined) return text(404, `${route.path}: repository not found`);
-      const latest = latestVersion(versions.map(parseVersion));
-      if (latest === undefined) return text(404, `${route.path}: no version tags`);
-      const res = await file(env, route.path, latest, "info");
-      if (!res.ok) return res;
-      return new Response(res.body, {
-        headers: { "content-type": "application/json", "cache-control": `public, max-age=${LIST_TTL_SECONDS}` },
-      });
+      const candidates = latestCandidates(versions.map(parseVersion));
+      if (candidates.length === 0) return text(404, `${route.path}: no version tags`);
+      // 取り込めない版（404、410）は飛ばす。取得の一時的な失敗（502）では止める。
+      // 飛ばすと古い版を最新と取り違えるため。
+      for (const version of candidates.slice(0, LATEST_ATTEMPTS)) {
+        const res = await file(env, route.path, version, "info");
+        if (res.ok) {
+          return new Response(res.body, {
+            headers: { "content-type": "application/json", "cache-control": `public, max-age=${LIST_TTL_SECONDS}` },
+          });
+        }
+        if (res.status !== 404 && res.status !== 410) return res;
+      }
+      return text(404, `${route.path}: none of the latest ${LATEST_ATTEMPTS} versions can be served`);
     }
     case "file":
       return file(env, route.path, route.version, route.file);

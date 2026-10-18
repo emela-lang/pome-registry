@@ -96,6 +96,31 @@ describe("list and latest", () => {
     expect(await latest.json()).toMatchObject({ version: "v1.2.0" });
   });
 
+  // 取り込めない版を飛ばす。tag の一覧は repo ごとに返す。
+  function mockTags(tags: Record<string, string[]>) {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const repo = /^https:\/\/(.+)\.git\/info\/refs/.exec(String(input))![1]!;
+      return new Response(advertisement((tags[repo] ?? []).map((t) => `refs/tags/${t}`)) as BodyInit);
+    });
+  }
+
+  it("skips versions that cannot be ingested", async () => {
+    mockTags({ "github.com/acme/skip": ["v1.0.0", "v1.1.0", "v1.2.0", "v1.3.0-rc.1"] });
+    const latest = await get("github.com/acme/skip/@latest");
+    expect(latest.status).toBe(200);
+    expect(await latest.json()).toMatchObject({ version: "v1.0.0" });
+  });
+
+  it("stops at a temporary failure instead of skipping it", async () => {
+    mockTags({ "github.com/acme/flaky": ["v1.0.0", "v1.1.0"] });
+    expect((await get("github.com/acme/flaky/@latest")).status).toBe(502);
+  });
+
+  it("gives up after five versions", async () => {
+    mockTags({ "github.com/acme/symlink": ["v1.0.0", "v1.1.0", "v1.2.0", "v1.3.0", "v1.4.0", "v1.5.0"] });
+    expect((await get("github.com/acme/symlink/@latest")).status).toBe(404);
+  });
+
   it("answers 404 for a missing repository", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("", { status: 401 }));
     expect((await get("github.com/acme/nothing/@v/list")).status).toBe(404);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareVersions, InvalidVersion, latestVersion, parseVersion } from "../src/index.ts";
+import { compareVersions, InvalidVersion, latestCandidates, parseVersion } from "../src/index.ts";
 
 describe("version", () => {
   it("semver の tag を読む", () => {
@@ -17,8 +17,9 @@ describe("version", () => {
   });
 
   it("latest は prerelease でない最大を選ぶ", () => {
-    expect(latestVersion(["v1.0.0", "v1.1.0-rc.1", "v0.9.0"].map(parseVersion))?.raw).toBe("v1.0.0");
-    expect(latestVersion(["v1.1.0-rc.1", "v1.1.0-rc.2"].map(parseVersion))?.raw).toBe("v1.1.0-rc.2");
-    expect(latestVersion([])).toBeUndefined();
+    const order = (vs: string[]) => latestCandidates(vs.map(parseVersion)).map((v) => v.raw);
+    expect(order(["v1.0.0", "v1.1.0-rc.1", "v0.9.0", "v1.0.1-rc.1"])).toEqual(["v1.0.0", "v0.9.0", "v1.1.0-rc.1", "v1.0.1-rc.1"]);
+    expect(order(["v1.1.0-rc.1", "v1.1.0-rc.2"])).toEqual(["v1.1.0-rc.2", "v1.1.0-rc.1"]);
+    expect(order([])).toEqual([]);
   });
 });
