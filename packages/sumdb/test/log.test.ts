@@ -65,6 +65,7 @@ describe("Log", () => {
     expect(result.ok).toBe(false);
   });
 
+  // 300 回の追記がそれぞれ R2 に公開するので、遅い CI では 5 秒を超える。
   it("publishes tiles that match the tree", async () => {
     const log = env.LOG.getByName("many");
     const nodes = new Map<string, Uint8Array>();
@@ -94,7 +95,7 @@ describe("Log", () => {
     const first = encoder.encode(record(256));
     expect((entries[0]! << 8) | entries[1]!).toBe(first.length);
     expect(entries.slice(2, 2 + first.length)).toEqual(first);
-  });
+  }, 60_000);
 });
 
 describe("objectKey", () => {
