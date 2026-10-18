@@ -1,0 +1,21 @@
+{
+  "name": "@pome-registry/ingester",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc -p .",
+    "test": "vitest run",
+    "build": "esbuild src/main.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/main.js",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@pome-registry/protocol": "workspace:*",
+    "smol-toml": "^1.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}
