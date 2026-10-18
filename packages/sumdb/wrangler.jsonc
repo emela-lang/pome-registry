@@ -1,0 +1,16 @@
+// sumdb: 読むのは R2 から、追記は Durable Object の Log だけが行う。
+// 追記の口は HTTP に出さない。proxy の Worker が DO の binding（script_name: pome-sumdb）で呼ぶ。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pome-sumdb",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "routes": [{ "pattern": "sum.emela.ab2m.link", "custom_domain": true }],
+  "r2_buckets": [{ "binding": "SUMDB", "bucket_name": "pome-sumdb" }],
+  "durable_objects": {
+    "bindings": [{ "name": "LOG", "class_name": "Log" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Log"] }],
+  // 秘密: SUMDB_SIGNER_KEY（signed-note の秘密鍵の形。名前が origin になる）
+  "observability": { "enabled": true }
+}
