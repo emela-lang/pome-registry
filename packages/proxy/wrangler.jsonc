@@ -11,7 +11,7 @@
     "bindings": [{ "name": "LOG", "class_name": "Log", "script_name": "pome-sumdb" }]
   },
   // ingester は公開ホスト名を持たず、Tunnel の先にある。service_id は `wrangler vpc service create` の結果。
-  "vpc_services": [{ "binding": "INGESTER", "service_id": "REPLACE_WITH_SERVICE_ID", "remote": true }],
+  "vpc_services": [{ "binding": "INGESTER", "service_id": "01a14eb6-f72b-7fc3-8f29-67bcb32ed86f", "remote": true }],
   // 秘密: INGEST_SECRET（ingester と共有する HMAC の鍵）
   "observability": { "enabled": true },
   "env": {
