@@ -6,6 +6,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "routes": [{ "pattern": "sum.emela.ab2m.link", "custom_domain": true }],
+  // lookup にない版を取り込ませる先。
+  "vars": { "PROXY_URL": "https://pomes.emela.ab2m.link" },
   "r2_buckets": [{ "binding": "SUMDB", "bucket_name": "pome-sumdb" }],
   "durable_objects": {
     "bindings": [{ "name": "LOG", "class_name": "Log" }]

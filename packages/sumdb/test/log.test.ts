@@ -12,7 +12,7 @@ import {
   rootHash,
   tileData,
 } from "@pome-registry/protocol";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { objectKey } from "../src/index.ts";
 
 const H = (c: string) => `h1:${c.repeat(43)}=` as const;
@@ -99,10 +99,10 @@ describe("Log", () => {
 
 describe("objectKey", () => {
   it("accepts the sumdb paths", () => {
-    expect(objectKey("checkpoint")).toBe("checkpoint");
-    expect(objectKey("tile/0/x001/234.p/7")).toBe("tile/0/x001/234.p/7");
-    expect(objectKey("tile/entries/000")).toBe("tile/entries/000");
-    expect(objectKey("lookup/github.com/!acme/x@v1.2.3")).toBe("lookup/github.com/!acme/x@v1.2.3");
+    for (const p of ["checkpoint", "tile/0/x001/234.p/7", "tile/entries/000", "lookup/github.com/!acme/x@v1.2.3"]) {
+      expect(objectKey(p)?.key, p).toBe(p);
+    }
+    expect(objectKey("lookup/github.com/!acme/x@v1.2.3")?.lookup?.path).toBe("github.com/Acme/x");
   });
 
   it("rejects anything else", () => {
@@ -112,7 +112,49 @@ describe("objectKey", () => {
   });
 
   it("answers 404 and 405", async () => {
-    expect((await get("lookup/github.com/acme/none@v1.0.0")).status).toBe(404);
+    expect((await get("tile/0/999")).status).toBe(404);
     expect((await SELF.fetch("https://sum.example.test/checkpoint", { method: "POST" })).status).toBe(405);
+  });
+});
+
+describe("lookup of an unrecorded version", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const fresh = formatRecord({
+    path: parseSourcePath("github.com/acme/fresh"),
+    version: parseVersion("v1.0.0"),
+    tree: H("D"),
+    manifest: H("E"),
+  });
+
+  it("asks the proxy to ingest it and answers the new record", async () => {
+    // proxy の代わりに、記録を Log に足す。
+    const fetch = vi.spyOn(globalThis, "fetch").mockImplementation(async () => {
+      await env.LOG.getByName("log").append(fresh);
+      return new Response("{}");
+    });
+    const res = await get("lookup/github.com/acme/fresh@v1.0.0");
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain(fresh);
+    expect(String(fetch.mock.calls[0]![0])).toBe("https://pomes.emela.ab2m.link/github.com/acme/fresh/@v/v1.0.0.info");
+  });
+
+  it("passes the proxy's refusal through", async () => {
+    // 応答は呼ばれた要求の中で作る（Workers では要求をまたいで body を読めない）。
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async () => new Response("x@v1.0.0: src/link is a symbolic link\n", { status: 410 }),
+    );
+    const res = await get("lookup/github.com/acme/x@v1.0.0");
+    expect(res.status).toBe(410);
+    expect(await res.text()).toContain("symbolic link");
+  });
+
+  it("answers 502 when the proxy fails", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response("down", { status: 503 }));
+    const res = await get("lookup/github.com/acme/x@v1.0.0");
+    expect(res.status).toBe(502);
+    expect(res.headers.get("cache-control")).toBe("no-store");
   });
 });

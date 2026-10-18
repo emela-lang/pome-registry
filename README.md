@@ -23,6 +23,8 @@ ingester は資格情報を持たない．git から取って検査し，ハッ�
 
 proxy はアーカイブを展開して `h1:` を計算し直し，ingester の答えと照らしてから sumdb に記録する．自宅のサーバーが乗っ取られても，R2 と sumdb の鍵は漏れず，配る中身と sumdb の記録が食い違うこともない（git と違う中身を記録させることはできるが，`direct` で取った利用者の照合で見つかる）．
 
+sumdb の lookup にない版は，sumdb の Worker が proxy に `.info` を求めて取り込ませてから返す（`direct` で取った利用者のため）．proxy は Custom Domain なので service binding なしに fetch で呼ぶ．proxy は sumdb の Durable Object を束縛しているので，逆向きにも束縛すると deploy の順が決まらない．
+
 取り込みの順は「sumdb に記録 → R2 にアーカイブと `.toml` → `.info`」．`.info` があれば全部そろっている．同じ版に別の中身の記録があれば（tag の付け替え）410 で断る．
 
 ## deploy
@@ -62,7 +64,6 @@ pnpm deploy
 ## 未決
 
 - v2 以上の major の ID（仕様 18.1 #40）．path に `/v2` を付けるかを決めていない
-- sumdb の lookup にない版は 404 を返す．`direct` で取る利用者のために，ここで proxy に取り込ませる
 - アーカイブは `.tar.gz`．ハッシュは木から取るので，後で形式を替えても lock は壊れない
 - ingester の応答（multipart）は全部をメモリに載せる．大きさの上限（32 MiB）で抑えている
 - ingester は tag の commit をまるごと取ってから大きさを検査する．取得は 30 秒で打ち切り，`/tmp` は 512 MiB に絞っているが，大きなリポジトリの帯域は使われる
