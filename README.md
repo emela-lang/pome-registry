@@ -36,7 +36,7 @@ cd packages/sumdb
 pnpm genkey sum.emela.ab2m.link          # signer は秘密，verifier はコンパイラに埋め込む
 npx wrangler r2 bucket create pome-sumdb
 npx wrangler secret put SUMDB_SIGNER_KEY # signer を貼る
-pnpm deploy
+pnpm run deploy                           # `pnpm deploy` は pnpm 自身のコマンドなので run を付ける
 ```
 
 鍵を替えると，古い公開鍵を埋め込んだコンパイラがすべて検証に落ちる．秘密鍵は失くさないこと．
@@ -56,7 +56,7 @@ Tunnel に Workers VPC Service を作り，宛先を `http://ingester:8080` に�
 cd packages/proxy
 npx wrangler r2 bucket create pome-proxy
 npx wrangler secret put INGEST_SECRET    # ingester と同じ値
-pnpm deploy
+pnpm run deploy                           # `pnpm deploy` は pnpm 自身のコマンドなので run を付ける
 ```
 
 コンテナは読み取り専用で，書けるのは `/tmp`（512 MiB）だけ．git は手元の設定と資格情報を読まず，https 以外のプロトコルを使わない．
