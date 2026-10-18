@@ -9,5 +9,6 @@
   "scripts": {
     "check": "pnpm -r run check",
     "test": "pnpm -r run test"
-  }
+  },
+  "license": "Apache-2.0"
 }
