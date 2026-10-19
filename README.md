@@ -5,8 +5,8 @@ Emela の Pome（4.7）の proxy と checksum DB．ID と版の真実は git に
 | パッケージ | 中身 |
 |---|---|
 | `packages/protocol` | source path，version，`h1:` ハッシュ，URL と R2 の並び，sumdb の記録，ingester の API と署名，Merkle tree と tile，署名付きの note，アーカイブ（tar.gz） |
-| `packages/sumdb` | `sum.emela.ab2m.link`．読みは R2 から返し，追記は Durable Object の `Log` が SQLite で持つ |
-| `packages/proxy` | `pomes.emela.ab2m.link`．R2 から配り，ない版は ingester に取り込ませる．`@v/list` は git の smart HTTP で直接引く |
+| `packages/sumdb` | `sum.emela.dev`．読みは R2 から返し，追記は Durable Object の `Log` が SQLite で持つ |
+| `packages/proxy` | `pomes.emela.dev`．R2 から配り，ない版は ingester に取り込ませる．`@v/list` は git の smart HTTP で直接引く |
 | `packages/ingester` | 手元のサーバーで動く Node のサービス（Docker）．git で tag を浅く取り，検査して tar.gz とハッシュを返す |
 
 扱う host は今は github.com だけ．`github.com/<owner>/<repo>` までがリポジトリで，その後ろはリポジトリの中のディレクトリ（4.7）．ディレクトリの Pome の tag はディレクトリを前に付け（`platform-cloudflare/v0.1.0`），中身はそのディレクトリの tree．
@@ -48,6 +48,10 @@ pnpm run deploy                           # `pnpm deploy` は pnpm 自身のコ�
 ```
 
 鍵を替えると，古い公開鍵を埋め込んだコンパイラがすべて検証に落ちる．秘密鍵は失くさないこと．
+
+鍵の名前は `sum.emela.ab2m.link` で，ホスト名（`sum.emela.dev`）と違う．ホストを `emela.dev` に移したときに鍵を替えなかったため．コンパイラは鍵とは別に URL を持つ．
+
+`*.emela.ab2m.link` は v0.22〜v0.23 のコンパイラの既定なので，両方の Worker に Custom Domain として残してある．
 
 ingester を手元のサーバーで起こす．ポートは外に開けず，cloudflared が Tunnel を張る．
 

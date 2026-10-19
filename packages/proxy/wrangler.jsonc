@@ -5,7 +5,11 @@
   "name": "pome-proxy",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
-  "routes": [{ "pattern": "pomes.emela.ab2m.link", "custom_domain": true }],
+  // ab2m.link は v0.22〜v0.23 のコンパイラの既定。切り捨てるまで残す。
+  "routes": [
+    { "pattern": "pomes.emela.dev", "custom_domain": true },
+    { "pattern": "pomes.emela.ab2m.link", "custom_domain": true }
+  ],
   "r2_buckets": [{ "binding": "PROXY", "bucket_name": "pome-proxy" }],
   "durable_objects": {
     "bindings": [{ "name": "LOG", "class_name": "Log", "script_name": "pome-sumdb" }]
