@@ -139,7 +139,7 @@ describe("lookup of an unrecorded version", () => {
     const res = await get("lookup/github.com/acme/fresh@v1.0.0");
     expect(res.status).toBe(200);
     expect(await res.text()).toContain(fresh);
-    expect(String(fetch.mock.calls[0]![0])).toBe("https://pomes.emela.ab2m.link/github.com/acme/fresh/@v/v1.0.0.info");
+    expect(String(fetch.mock.calls[0]![0])).toBe("https://pomes.emela.dev/github.com/acme/fresh/@v/v1.0.0.info");
   });
 
   it("passes the proxy's refusal through", async () => {
