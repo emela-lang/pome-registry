@@ -5,6 +5,7 @@ import {
   appendNodes,
   changedTiles,
   entryBundle,
+  readEntryBundle,
   sumdbPaths,
   tileData,
   rootHash,
@@ -81,5 +82,12 @@ describe("tlog", () => {
   it("bundles entries with a 2-byte length prefix", () => {
     expect(Array.from(entryBundle([Uint8Array.of(7), new Uint8Array(0)]))).toEqual([0, 1, 7, 0, 0]);
     expect(() => entryBundle([new Uint8Array(0x10000)])).toThrow(RangeError);
+  });
+
+  it("reads back the entries of a bundle", () => {
+    const records = [Uint8Array.of(7), new Uint8Array(0), new Uint8Array(300).fill(1)];
+    expect(readEntryBundle(entryBundle(records))).toEqual(records);
+    expect(() => readEntryBundle(Uint8Array.of(0))).toThrow(RangeError);
+    expect(() => readEntryBundle(Uint8Array.of(0, 2, 7))).toThrow(RangeError);
   });
 });

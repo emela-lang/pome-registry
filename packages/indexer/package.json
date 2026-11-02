@@ -1,0 +1,23 @@
+{
+  "name": "@pome-registry/indexer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc -p .",
+    "test": "vitest run",
+    "types": "wrangler types",
+    "dev": "wrangler dev --test-scheduled",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@pome-registry/protocol": "workspace:*",
+    "smol-toml": "^1.9.1"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.12",
+    "wrangler": "^4.151.1"
+  },
+  "license": "Apache-2.0"
+}

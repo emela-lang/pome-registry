@@ -127,6 +127,20 @@ export function entryBundle(records: readonly Uint8Array[]): Uint8Array {
   return out;
 }
 
+// entryBundle の逆。長さが途中で切れていれば RangeError。
+export function readEntryBundle(data: Uint8Array): Uint8Array[] {
+  const records: Uint8Array[] = [];
+  let at = 0;
+  while (at < data.length) {
+    if (at + 2 > data.length) throw new RangeError("entry bundle ends inside a length");
+    const end = at + 2 + ((data[at]! << 8) | data[at + 1]!);
+    if (end > data.length) throw new RangeError("entry bundle ends inside a record");
+    records.push(data.slice(at + 2, end));
+    at = end;
+  }
+  return records;
+}
+
 function checkSize(n: number): void {
   if (!Number.isSafeInteger(n) || n < 0) throw new RangeError(`bad tree size ${n}`);
 }
