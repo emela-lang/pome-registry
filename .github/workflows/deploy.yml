@@ -1,4 +1,4 @@
-# Workers（sumdb と proxy）を deploy する。ingester は Komodo の Stack で別に deploy する。
+# Workers（sumdb、proxy、indexer）を deploy する。ingester は Komodo の Stack で別に deploy する。
 #
 # 要る秘密（リポジトリの Settings → Secrets and variables → Actions）:
 #   CLOUDFLARE_API_TOKEN   Workers を deploy できる API トークン
@@ -14,6 +14,7 @@ on:
       - packages/protocol/**
       - packages/sumdb/**
       - packages/proxy/**
+      - packages/indexer/**
       - pnpm-lock.yaml
       - .github/workflows/deploy.yml
   workflow_dispatch:
@@ -40,9 +41,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - run: pnpm --filter @pome-registry/protocol --filter @pome-registry/sumdb --filter @pome-registry/proxy test
+      - run: pnpm --filter @pome-registry/protocol --filter @pome-registry/sumdb --filter @pome-registry/proxy --filter @pome-registry/indexer test
       # proxy は sumdb の Durable Object を script_name で引くので、sumdb を先に置く。
       - name: Deploy sumdb
         run: pnpm --filter @pome-registry/sumdb run deploy
       - name: Deploy proxy
         run: pnpm --filter @pome-registry/proxy run deploy
+      # indexer は R2 を読んで pkgs-api の D1 に書くだけで、ほかの Worker を束縛しないので順は問わない。
+      - name: Deploy indexer
+        run: pnpm --filter @pome-registry/indexer run deploy
