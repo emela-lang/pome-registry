@@ -1,0 +1,21 @@
+// indexer: sumdb に記録された版を、pkgs.emela.dev の索引（pkgs-api の D1）に写す。
+// Cron で動き、HTTP は受けない。R2 は読むだけで、書くのは D1 だけ。
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pome-indexer",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "triggers": { "crons": ["*/5 * * * *"] },
+  // sumdb の公開鍵。コンパイラの DEFAULT_SUMDB と同じもの。
+  "vars": { "SUMDB_VERIFIER_KEY": "sum.emela.ab2m.link+ad5364f4+AUu8x/imsHpAJe8Ee9U5GwuaVqG9hijmecEfo53D/FnS" },
+  "r2_buckets": [
+    { "binding": "SUMDB", "bucket_name": "pome-sumdb" },
+    { "binding": "PROXY", "bucket_name": "pome-proxy" }
+  ],
+  // 表は pkgs-api の migrations/ が持つ。id は pkgs-api の wrangler.toml と同じものにする。
+  "d1_databases": [
+    { "binding": "DB", "database_name": "pkgs", "database_id": "4aa6e760-8a17-4f87-a405-27acad8e93fb" }
+  ],
+  "observability": { "enabled": true }
+}
