@@ -7,7 +7,7 @@ Emela の Pome（4.7）の proxy と checksum DB．ID と版の真実は git に
 | `packages/protocol` | source path，version，`h1:` ハッシュ，URL と R2 の並び，sumdb の記録，ingester の API と署名，Merkle tree と tile，署名付きの note，アーカイブ（tar.gz） |
 | `packages/sumdb` | `sum.emela.dev`．読みは R2 から返し，追記は Durable Object の `Log` が SQLite で持つ |
 | `packages/proxy` | `pomes.emela.dev`．R2 から配り，ない版は ingester に取り込ませる．`@v/list` は git の smart HTTP で直接引く |
-| `packages/indexer` | Cron で sumdb の新しい記録を読み，proxy の `.info` と `.toml` から版の行を作って pkgs.emela.dev の D1（pkgs-api の `pome_versions`）に写す |
+| `packages/indexer` | Cron で sumdb の新しい記録を読み，proxy の `.info` と `.toml` から版と依存の行を作って pkgs.emela.dev の D1（pkgs-api の `pome_versions`，`pome_dependencies`）に写す．`pomes` の行を最新版に合わせ，`importers` を数え直す |
 | `packages/ingester` | 手元のサーバーで動く Node のサービス（Docker）．git で tag を浅く取り，検査して tar.gz とハッシュを返す |
 
 扱う host は今は github.com だけ．`github.com/<owner>/<repo>` までがリポジトリで，その後ろはリポジトリの中のディレクトリ（4.7）．ディレクトリの Pome の tag はディレクトリを前に付け（`platform-cloudflare/v0.1.0`），中身はそのディレクトリの tree．
